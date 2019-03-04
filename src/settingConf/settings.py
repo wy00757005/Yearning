@@ -25,7 +25,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'u)zall!ag&mci+ja5u&-6*1e^ufyu)l4i8+^=mw$845@k!ie+3.txt'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 # ALLOWED_HOSTS = [str(CONF_DATA.ipaddress).split(':')[0]]
 ALLOWED_HOSTS = ['*']
@@ -37,7 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'core.apps.CoreConfig',
-    'rest_framework'
+    'rest_framework',
+    'django.contrib.staticfiles',
+    'settingConf'
 ]
 
 MIDDLEWARE = [
@@ -74,6 +76,28 @@ DATABASES = {
         "HOST": CONF_DATA.address
     }
 }
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': ['dist'],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+STATIC_URL = '/static/'
+
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'dist/static').replace('\\', '/'),
+)
 
 # Password validation
 # https://docs.djangoproject.com/en/1.10/ref/settings/#auth-password-validators
@@ -117,7 +141,7 @@ REST_FRAMEWORK = {
 JWT_AUTH = {
     'JWT_RESPONSE_PAYLOAD_HANDLER':
         'rest_framework_jwt.utils.jwt_response_payload_handler',
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=3000000),
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=7200),
 }
 
 LOGGING = {

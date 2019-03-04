@@ -49,27 +49,24 @@
               <Card style="margin-left: 5%">
                 <p slot="title">LDAP设置</p>
                 <Form :label-width="120">
-                  <FormItem label="LDAP认证类型:">
+                  <FormItem label="服务地址url">
+                    <Input placeholder="ldap://[ip地址或者域名]:[端口号]" v-model="ldap.url"></Input>
+                  </FormItem>
+                  <FormItem label="LDAP管理员DN:">
+                    <Input placeholder="请填写管理员DN" v-model="ldap.user"></Input>
+                  </FormItem>
+                  <FormItem label="LDAP管理员密码:">
+                    <Input placeholder="请填写管理员密码" v-model="ldap.password" type="password"></Input>
+                  </FormItem>
+                  <FormItem label="LDAP搜索规则:">
                     <Select v-model="ldap.type">
-                      <Option value="1">域名认证</Option>
-                      <Option value="2">uid认证</Option>
-                      <Option value="3">cn认证</Option>
+                      <Option value="1">sAMAccountName</Option>
+                      <Option value="2">uid</Option>
+                      <Option value="3">cn</Option>
                     </Select>
                   </FormItem>
-                  <FormItem label="服务地址:">
-                    <Input placeholder="服务ip地址" v-model="ldap.host"></Input>
-                  </FormItem>
                   <FormItem label="LDAP_SCBASE:">
-                    <Input placeholder="LDAP dc 相关设置,采用域名认证可不填写" v-model="ldap.sc"></Input>
-                  </FormItem>
-                  <FormItem label="LDAP_域名:">
-                    <Input placeholder="LDAP Domain" v-model="ldap.domain"></Input>
-                  </FormItem>
-                  <FormItem label="LDAP_测试用户:">
-                    <Input placeholder="请填写测试用户" v-model="ldap.user"></Input>
-                  </FormItem>
-                  <FormItem label="LDAP_测试密码:">
-                    <Input placeholder="请填写测试密码" v-model="ldap.password" type="password"></Input>
+                    <Input placeholder="LDAP Search Base" v-model="ldap.sc"></Input>
                   </FormItem>
                   <Button type="primary" @click="ldap_test()">ldap测试</Button>
                 </Form>
@@ -82,7 +79,7 @@
                   <br>
                   2.请正确填写Inception备份库相关信息，否则将无法获得回滚语句。(无法获得回滚语句的原因有多种这只是其中之一)
                   <br>
-                  3.LDAP登陆建议使用域名方式登陆，如使用其他的方式配置较为繁琐。比如使用uid方式需在LDAP_SCBASE中填写相关dc，cn等相关信息
+                  3.LDAP登录用户名，必须全局唯一。
                 </template>
               </Alert>
             </Col>
@@ -223,7 +220,7 @@
 </template>
 
 <script>
-  import util from '../../libs/util'
+
   import axios from 'axios'
 
   export default {
@@ -241,12 +238,11 @@
           back_password: ''
         },
         ldap: {
-          type: '',
-          host: '',
-          sc: '',
-          domain: '',
+          url: '',
           user: '',
-          password: ''
+          password: '',
+          type: 1,
+          sc: ''
         },
         message: {
           webhook: '',
@@ -306,8 +302,6 @@
       handleCloseemail (event, name) {
         const index = this.other.email_suffix_list.indexOf(name)
         this.other.email_suffix_list.splice(index, 1)
-        console.log(this.other.email_suffix)
-        console.log(this.other.email_suffix_list)
       },
       multi_switching (status) {
         this.other.multi = status
@@ -322,55 +316,55 @@
         this.message.mail = status
       },
       ldap_test () {
-        axios.put(`${util.url}/setting/1`, {
+        axios.put(`${this.$config.url}/setting/1`, {
           'ldap': JSON.stringify(this.ldap)
         })
           .then(res => {
-            util.notice(res.data)
+            this.$config.notice(res.data)
           })
           .catch(error => {
-            util.err_notice(this, error)
+            this.$config.err_notice(this, error)
           })
       },
       dingding_test () {
-        axios.put(`${util.url}/setting/2`, {
+        axios.put(`${this.$config.url}/setting/2`, {
           'ding': this.message.webhook
         })
           .then(res => {
-            util.notice(res.data)
+            this.$config.notice(res.data)
           })
           .catch(error => {
-            util.err_notice(this, error)
+            this.$config.err_notice(this, error)
           })
       },
       mail_test () {
-        axios.put(`${util.url}/setting/3`, {
+        axios.put(`${this.$config.url}/setting/3`, {
           'mail': JSON.stringify(this.message)
         })
           .then(res => {
-            util.notice(res.data)
+            this.$config.notice(res.data)
           })
           .catch(error => {
-            util.err_notice(error)
+            this.$config.err_notice(this, error)
           })
       },
       save_upload () {
-        axios.post(`${util.url}/setting/save`, {
+        axios.post(`${this.$config.url}/setting/save`, {
           'inception': JSON.stringify(this.inception),
           'ldap': JSON.stringify(this.ldap),
           'message': JSON.stringify(this.message),
           'other': JSON.stringify(this.other)
         })
           .then(res => {
-            util.notice(res.data)
+            this.$config.notice(res.data)
           })
           .catch(error => {
-            util.err_notice(this, error)
+            this.$config.err_notice(this, error)
           })
       }
     },
     mounted () {
-      axios.get(`${util.url}/setting/get`)
+      axios.get(`${this.$config.url}/setting/get`)
         .then(res => {
           if (res.data.other === 'refused') {
             this.$router.push({
@@ -378,17 +372,13 @@
             })
           } else {
             this.message = res.data.message
-            this.message.mail ? this.message.mail = true : this.message.mail = false
-            this.message.ding ? this.message.ding = true : this.message.ding = false
             this.inception = res.data.inception
             this.other = res.data.other
-            this.other.multi ? this.other.multi = true : this.other.multi = false
-            this.other.query ? this.other.query = true : this.other.query = false
             this.ldap = res.data.ldap
           }
         })
         .catch(error => {
-          util.err_notice(error)
+          this.$config.err_notice(this, error)
         })
     }
   }

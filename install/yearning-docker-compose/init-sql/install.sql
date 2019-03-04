@@ -74,8 +74,8 @@ CREATE TABLE `core_account` (
   `date_joined` datetime(6) NOT NULL,
   `group` varchar(40) COLLATE utf8_bin NOT NULL,
   `department` varchar(40) COLLATE utf8_bin NOT NULL,
-  `auth_group` varchar(100) COLLATE utf8_bin DEFAULT NULL,
-  `real_name` varchar(100) COLLATE utf8_bin DEFAULT NULL,
+  `auth_group` longtext COLLATE utf8_bin DEFAULT NULL,
+  `real_name` varchar(100) COLLATE utf8_bin DEFAULT '请添加真实姓名' NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=47 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -121,6 +121,7 @@ CREATE TABLE `core_applygrained` (
   `work_id` varchar(50) COLLATE utf8_bin DEFAULT NULL,
   `status` int(11) DEFAULT NULL,
   `auth_group` varchar(50) COLLATE utf8_bin DEFAULT NULL,
+  `real_name` varchar(100) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `core_applygrained_username_01d55fc9` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -136,7 +137,7 @@ CREATE TABLE `core_databaselist` (
   `ip` varchar(100) COLLATE utf8_bin NOT NULL,
   `username` varchar(150) COLLATE utf8_bin NOT NULL,
   `port` int(11) NOT NULL,
-  `password` varchar(50) COLLATE utf8_bin NOT NULL,
+  `password` varchar(500) COLLATE utf8_bin NOT NULL,
   `before` longtext COLLATE utf8_bin,
   `after` longtext COLLATE utf8_bin,
   PRIMARY KEY (`id`)
@@ -185,6 +186,7 @@ CREATE TABLE `core_query_order` (
   `export` smallint(6),
   `audit` varchar(100) COLLATE utf8_bin DEFAULT NULL,
   `time` varchar(100) COLLATE utf8_bin DEFAULT NULL,
+  `real_name` varchar(100) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `core_query_order_work_id_1ae60daa` (`work_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=86 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
@@ -203,22 +205,6 @@ CREATE TABLE `core_querypermissions` (
 ) ENGINE=InnoDB AUTO_INCREMENT=85 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
 -- ----------------------------
--- Table structure for core_sqldictionary
--- ----------------------------
-DROP TABLE IF EXISTS `core_sqldictionary`;
-CREATE TABLE `core_sqldictionary` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `BaseName` varchar(100) COLLATE utf8_bin NOT NULL,
-  `TableName` varchar(100) COLLATE utf8_bin NOT NULL,
-  `Field` varchar(100) COLLATE utf8_bin NOT NULL,
-  `Type` varchar(100) COLLATE utf8_bin NOT NULL,
-  `Extra` longtext COLLATE utf8_bin NOT NULL,
-  `TableComment` varchar(100) COLLATE utf8_bin NOT NULL,
-  `Name` varchar(100) COLLATE utf8_bin DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=15750 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- ----------------------------
 -- Table structure for core_sqlorder
 -- ----------------------------
 DROP TABLE IF EXISTS `core_sqlorder`;
@@ -235,9 +221,10 @@ CREATE TABLE `core_sqlorder` (
   `sql` longtext COLLATE utf8_bin NOT NULL,
   `text` longtext COLLATE utf8_bin NOT NULL,
   `assigned` varchar(50) COLLATE utf8_bin NOT NULL,
-  `delay` int(11) DEFAULT NULL,
+  `delay` varchar(100) COLLATE utf8_bin DEFAULT NULL,
   `rejected` longtext COLLATE utf8_bin NOT NULL,
   `real_name` varchar(100) COLLATE utf8_bin DEFAULT NULL,
+  `executor` varchar(50) COLLATE utf8_bin DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `core_sqlorder_bundle_id_3d5581f1` (`bundle_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=78 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;

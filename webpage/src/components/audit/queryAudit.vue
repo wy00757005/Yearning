@@ -8,13 +8,28 @@
         </p>
         <Row>
           <Col span="24">
-            <Poptip
-              confirm
-              title="您确认删除这些工单信息吗?"
-              @on-ok="delrecordData"
-            >
-              <Button type="text" style="margin-left: -1%">删除记录</Button>
-            </Poptip>
+            <Form inline>
+              <FormItem>
+                <Poptip
+                  confirm
+                  title="您确认删除这些工单信息吗?"
+                  @on-ok="delrecordData"
+                >
+                  <Button type="warning">删除记录</Button>
+                </Poptip>
+              </FormItem>
+              <FormItem>
+                <Input placeholder="账号名" v-model="find.user"></Input>
+              </FormItem>
+              <FormItem>
+                <DatePicker format="yyyy-MM-dd HH:mm" type="datetimerange" placeholder="请选择查询的时间范围"
+                            v-model="find.picker" @on-change="find.picker=$event" style="width: 250px"></DatePicker>
+              </FormItem>
+              <FormItem>
+                <Button type="success" @click="queryData">查询</Button>
+                <Button type="primary" @click="queryCancel">重置</Button>
+              </FormItem>
+            </Form>
             <Table border :columns="permissoncolums" :data="query_info" stripe ref="selection"
                    @on-selection-change="delrecordList"></Table>
             <br>
@@ -43,11 +58,6 @@
           <p v-if="query.export === 1">是</p>
           <p v-else>否</p>
         </FormItem>
-        <hr style="height:1px;border:none;border-top:1px dashed #dddee1;"/>
-        <br>
-        <FormItem label="查询说明:">
-          <Input v-model="query.instructions" type="textarea" :autosize="{minRows: 5,maxRows: 8}" readonly></Input>
-        </FormItem>
       </Form>
       <div slot="footer">
         <Button type="primary" @click="editInfodModal=false">取消</Button>
@@ -61,7 +71,6 @@
 
 <script>
   import axios from 'axios'
-  import util from '../../libs/util'
 
   export default {
     name: 'Query_audit',
@@ -83,8 +92,17 @@
             key: 'time'
           },
           {
+            title: '查询说明',
+            key: 'instructions',
+            tooltip: true
+          },
+          {
             title: '申请人',
             key: 'username'
+          },
+          {
+            title: '真实姓名',
+            key: 'real_name'
           },
           {
             title: '状态',
@@ -197,29 +215,34 @@
         per_pn: 1,
         delrecord: [],
         editInfodModal: false,
-        query: {}
+        query: {},
+        find: {
+          picker: [],
+          user: '',
+          valve: false
+        }
       }
     },
     methods: {
       permisson_list (vl = 1) {
-        axios.get(`${util.url}/query_order?page=${vl}`)
+        axios.get(`${this.$config.url}/query_order?page=${vl}&query=${JSON.stringify(this.find)}`)
           .then(res => {
             this.query_info = res.data['data']
             this.per_pn = res.data['pn']
           })
           .catch(error => {
-            util.err_notice(error)
+            this.$config.err_notice(this, error)
           })
       },
       delrecordData () {
-        axios.post(`${util.url}/query_order/`, {'work_id': JSON.stringify(this.delrecord)})
+        axios.post(`${this.$config.url}/query_order/`, {'work_id': JSON.stringify(this.delrecord)})
           .then(res => {
-            util.notice(res.data)
+            this.$config.notice(res.data)
             this.$refs.perpage.currentPage = 1
             this.permisson_list()
           })
           .catch(error => {
-            util.err_notice(error)
+            this.$config.err_notice(this, error)
           })
       },
       delrecordList (vl) {
@@ -230,44 +253,52 @@
         this.query = vl
       },
       savedata () {
-        axios.put(`${util.url}/query_worklf/`,
+        axios.put(`${this.$config.url}/query_worklf/`,
           {
             'mode': 'agree',
             'work_id': this.query.work_id
           })
           .then(res => {
-            util.notice(res.data)
+            this.$config.notice(res.data)
             this.editInfodModal = false
             this.$refs.perpage.currentPage = 1
             this.permisson_list()
           })
           .catch(error => {
-            util.err_notice(error)
+            this.$config.err_notice(this, error)
           })
       },
       reject () {
-        axios.put(`${util.url}/query_worklf/`,
+        axios.put(`${this.$config.url}/query_worklf/`,
           {
             'mode': 'disagree',
             'work_id': this.query.work_id
           })
           .then(res => {
-            util.notice(res.data)
+            this.$config.notice(res.data)
             this.editInfodModal = false
             this.$refs.perpage.currentPage = 1
             this.permisson_list()
           })
           .catch(error => {
-            util.err_notice(error)
+            this.$config.err_notice(this, error)
           })
       },
       stop_query (vl) {
-        axios.put(`${util.url}/query_worklf`, {'mode': 'end', 'username': vl.username})
+        axios.put(`${this.$config.url}/query_worklf`, {'mode': 'end', 'username': vl.username})
           .then(res => {
-            util.notice(res.data)
+            this.$config.notice(res.data)
             this.permisson_list()
           })
-          .catch(err => util.err_notice(err))
+          .catch(err => this.$config.err_notice(this, err))
+      },
+      queryData () {
+        this.find.valve = true
+        this.permisson_list()
+      },
+      queryCancel () {
+        this.find = this.$config.clearObj(this.find)
+        this.permisson_list()
       }
     },
     mounted () {

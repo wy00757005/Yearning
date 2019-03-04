@@ -8,7 +8,7 @@ util.title = function (title) {
   window.document.title = title
 }
 
-util.mode = function typeok (obj) {
+util.mode = function (obj) {
   let oc = {}
   Object.keys(obj).forEach(function (key) {
     if (typeof obj[key] === 'string') {
@@ -28,10 +28,32 @@ util.mode = function typeok (obj) {
   return oc
 }
 
-util.err_notice = function (err) {
+util.err_notice = function (vm, err) {
+  let text = err
+  if (err.response !== undefined) {
+    if (err.response.status === 401) {
+      text = 'Token过期！请重新登录!'
+      vm.$router.replace({
+        name: 'login'
+      })
+    }
+  }
   Notice.error({
     title: '错误',
-    desc: err
+    desc: text
+  })
+}
+
+util.auth_notice = function (err) {
+  let text = err
+  if (err.response !== undefined) {
+    if (err.response.status === 400) {
+      text = '账号密码错误,请重新输入!'
+    }
+  }
+  Notice.error({
+    title: '错误',
+    desc: text
   })
 }
 
@@ -48,21 +70,9 @@ util.url = location.protocol + '//' + document.domain + ':8000/api/v1'
 
 util.auth = location.protocol + '//' + document.domain + ':8000/api-token-auth/'
 
-util.ajanxerrorcode = function (vm, error) {
-  if (error.response) {
-    if (error.response.status === 401) {
-      vm.$router.push({name: 'error_401'})
-    } else if (error.response.status === 400) {
-      Notice.error({title: '警告', desc: '账号密码错误,请重新输入!'})
-    } else if (error.response.status === 500) {
-      vm.$router.push({name: 'error_500'})
-    } else if (error.response.status === 404) {
-      vm.$router.push({name: 'error_404'})
-    } else {
-      Notice.error({title: '警告', desc: error.response})
-    }
-  }
-}
+// util.url = '/api/v1'
+//
+// util.auth = '/api-token-auth/'
 
 util.oneOf = function (ele, targetArr) {
   if (targetArr.indexOf(ele) >= 0) {
@@ -93,9 +103,6 @@ util.taglist = function (vm, name) {
       vm.$store.state.pageOpenedList.splice(index, 1)
     }
   })
-  if (name === 'myorder') {
-    vm.$store.state.pageOpenedList.push({'title': '我的工单', 'name': 'myorder'})
-  }
   appRouter.forEach((val) => {
     for (let i of val.children) {
       if (i.name === name && name !== 'home_index') {
@@ -104,6 +111,26 @@ util.taglist = function (vm, name) {
     }
   })
   localStorage.setItem('pageOpenedList', JSON.stringify(vm.$store.state.pageOpenedList))
+}
+
+util.clearObj = function (obj) {
+  for (let i in obj) {
+    if (typeof obj[i] === 'object') {
+      obj[i] = []
+    } else if (typeof obj[i] === 'string') {
+      obj[i] = ''
+    } else {
+      obj[i] = false
+    }
+  }
+  return obj
+}
+
+util.sameMerge = function (obj, merge, el) {
+  for (let i of Object.keys(el)) {
+    obj[i] = merge[i]
+  }
+  return obj
 }
 
 export default util

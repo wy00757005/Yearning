@@ -3,7 +3,7 @@
   .btn_hover {
     width: 60px;
     margin-left: 30%;
-    padding:10px 0;
+    padding: 10px 0;
   }
 
 </style>
@@ -60,8 +60,6 @@
 </template>
 
 <script>
-  //
-  import util from '../libs/util'
   import axios from 'axios'
 
   export default {
@@ -83,7 +81,6 @@
           'ddledit': '',
           'dmledit': '',
           'indexedit': '',
-          'view-dml': '',
           'serach-sql': '1',
           'management-user': '',
           'management-database': '',
@@ -106,18 +103,17 @@
             name: active
           })
         } else {
-          util.openPage(this, active)
+          this.$config.openPage(this, active)
         }
       }
     },
     created () {
-      axios.get(`${util.url}/homedata/menu`)
+      axios.get(`${this.$config.url}/homedata/menu`)
         .then(res => {
           let c = JSON.parse(res.data)
           this.filtermenulist.ddledit = c.ddl
           this.filtermenulist.indexedit = c.ddl
           this.filtermenulist.dmledit = c.dml
-          this.filtermenulist['view-dml'] = c.dic
           this.filtermenulist['management-user'] = c.user
           this.filtermenulist['management-database'] = c.base
         })

@@ -23,13 +23,14 @@
       <br>
       <Card>
         <Tabs value="custom" style="max-height: 300px;">
-          <TabPane label="普通登陆" name="custom">
+          <TabPane label="普通登录" name="custom">
             <Form ref="formInline" :model="formInline" :rules="ruleInline" inline>
               <Form-item prop="user" style="width: 100%">
-                <Input v-model="formInline.user" placeholder="Username"></Input>
+                <Input v-model="formInline.user" placeholder="Username" autofocus></Input>
               </Form-item>
               <Form-item prop="password" style="width: 100%">
-                <Input type="password" v-model="formInline.password" placeholder="Password"></Input>
+                <Input type="password" v-model="formInline.password" placeholder="Password"
+                       @on-keyup.enter="authdata"></Input>
               </Form-item>
               <Form-item style="width: 100%">
                 <Button type="primary" @click="authdata()" style="width: 100%" size="large">登录</Button>
@@ -40,14 +41,14 @@
             </Form>
           </TabPane>
           <!--自己添加-->
-          <TabPane label="LDAP登陆" name="ldap">
+          <TabPane label="LDAP登录" name="ldap">
             <Form ref="formInline" :model="formInline" :rules="ruleInline" inline>
               <Form-item prop="user" style="width: 100%">
                 <Input v-model="formInline.user" placeholder="ldap_Username"></Input>
               </Form-item>
               <Form-item prop="password" style="width: 100%">
                 <Input type="password" v-model="formInline.password" placeholder="ldap_Password"
-                       @on-keyup.enter="authdata()"></Input>
+                       @on-keyup.enter="ldap_login()"></Input>
               </Form-item>
               <Form-item style="width: 100%">
                 <Button type="primary" @click="ldap_login()" style="width: 100%" size="large">登录</Button>
@@ -96,7 +97,6 @@
 </template>
 <script>
   import axios from 'axios'
-  import util from './libs/util'
   import ICol from '../node_modules/iview/src/components/grid/col.vue'
   //
   export default {
@@ -194,11 +194,11 @@
       LoginRegister () {
         this.$refs['userinfova'].validate((valid) => {
           if (valid) {
-            axios.post(`${util.url}/loginregister/`, {
+            axios.post(`${this.$config.url}/loginregister/`, {
               'userinfo': JSON.stringify(this.userinfo)
             })
               .then(res => {
-                util.notice(res.data)
+                this.$config.notice(res.data)
                 this.userinfo = {
                   username: '',
                   password: '',
@@ -209,22 +209,21 @@
                 }
               })
               .catch(error => {
-                util.err_notice(error)
+                this.$config.err_notice(this, error)
               })
           } else {
-            util.err_notice('请正确填写相关注册信息！')
+            this.$config.err_notice(this, '请正确填写相关注册信息！')
           }
         })
       },
       authdata () {
-        axios.post(util.auth, {
+        axios.post(this.$config.auth, {
           'username': this.formInline.user,
           'password': this.formInline.password
         })
           .then(res => {
             axios.defaults.headers.common['Authorization'] = 'JWT ' + res.data['token']
             sessionStorage.setItem('user', this.formInline.user)
-            sessionStorage.setItem('password', this.formInline.password)
             sessionStorage.setItem('jwt', `JWT ${res.data['token']}`)
             sessionStorage.setItem('auth', res.data['permissions'])
             sessionStorage.setItem('real_name', res.data['real_name'])
@@ -238,40 +237,32 @@
               name: 'home_index'
             })
           })
-          .catch(error => {
-            util.ajanxerrorcode(this, error)
+          .catch(err => {
+            this.$config.auth_notice(err)
           })
       },
       ldap_login () {
-        axios.post(`${util.url}/ldapauth`, {
+        axios.post(`${this.$config.url}/ldapauth`, {
           'username': this.formInline.user,
           'password': this.formInline.password
         })
           .then(res => {
-            if (res.data['token'] === 'null') {
-              this.$Notice.error({
-                title: '警告',
-                desc: res.data['res']
-              })
+            axios.defaults.headers.common['Authorization'] = 'JWT ' + res.data['token']
+            sessionStorage.setItem('user', this.formInline.user)
+            sessionStorage.setItem('jwt', `JWT ${res.data['token']}`)
+            sessionStorage.setItem('auth', res.data['permissions'])
+            let auth = res.data['permissions']
+            if (auth === 'admin' || auth === 'perform') {
+              sessionStorage.setItem('access', 0)
             } else {
-              axios.defaults.headers.common['Authorization'] = 'JWT ' + res.data['token']
-              sessionStorage.setItem('user', this.formInline.user)
-              sessionStorage.setItem('password', this.formInline.password)
-              sessionStorage.setItem('jwt', `JWT ${res.data['token']}`)
-              sessionStorage.setItem('auth', res.data['permissions'])
-              let auth = res.data['permissions']
-              if (auth === 'admin') {
-                sessionStorage.setItem('access', 0)
-              } else {
-                sessionStorage.setItem('access', 1)
-              }
-              this.$router.push({
-                name: 'home_index'
-              })
+              sessionStorage.setItem('access', 1)
             }
+            this.$router.push({
+              name: 'home_index'
+            })
           })
-          .catch(error => {
-            util.ajanxerrorcode(this, error)
+          .catch(err => {
+            this.$config.auth_notice(err)
           })
       }
     },

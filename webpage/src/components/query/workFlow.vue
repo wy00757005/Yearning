@@ -71,7 +71,6 @@
 <script>
   //
   import axios from 'axios'
-  import util from '../../libs/util'
 
   export default {
     name: 'work_flow',
@@ -134,7 +133,7 @@
           connection_name_list: [],
           basenamelist: [],
           sqllist: [],
-          computer_roomlist: util.computer_room
+          computer_roomlist: this.$config.computer_room
         }
       }
     },
@@ -158,13 +157,14 @@
       handleSubmit () {
         this.$refs['step'].validate((valid) => {
           if (valid) {
-            axios.put(`${util.url}/query_worklf`, {
+            axios.put(`${this.$config.url}/query_worklf`, {
               'mode': 'put',
               'instructions': this.step.opinion,
               'connection_name': this.step.connection_name,
               'computer_room': this.step.computer_room,
               'export': this.step.export,
-              'audit': this.step.person
+              'audit': this.step.person,
+              'real_name': sessionStorage.getItem('real_name')
             })
               .then(() => {
                 this.$router.push({
@@ -176,16 +176,16 @@
       }
     },
     mounted () {
-      axios.put(`${util.url}/workorder/connection`, {'permissions_type': 'query'})
+      axios.put(`${this.$config.url}/workorder/connection`, {'permissions_type': 'query'})
         .then(res => {
           this.item = res.data['connection']
           this.personlist = res.data['assigend']
           this.datalist.computer_roomlist = res.data['custom']
         })
         .catch(error => {
-          util.err_notice(error)
+          this.$config.err_notice(this, error)
         })
-      axios.put(`${util.url}/query_worklf`, {'mode': 'status'})
+      axios.put(`${this.$config.url}/query_worklf`, {'mode': 'status'})
         .then(res => {
           if (res.data === 1) {
             this.$router.push({

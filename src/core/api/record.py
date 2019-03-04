@@ -21,23 +21,23 @@ class record_order(baseview.SuperUserpermissions):
     def get(self, request, args=None):
         try:
             page = request.GET.get('page')
-            username = request.GET.get('username')
         except KeyError as e:
             CUSTOM_ERROR.error(f'{e.__class__.__name__}: {e}')
             return HttpResponse(status=500)
         else:
             try:
-                pagenumber = SqlOrder.objects.filter(status=1, assigned=username).count()
-                start = int(page) * 10 - 10
-                end = int(page) * 10
+                pagenumber = SqlOrder.objects.filter(status=1, assigned=request.user).count()
+                start = (int(page) - 1) * 20
+                end = int(page) * 20
                 sql = SqlOrder.objects.raw(
                     '''
-                    select core_sqlorder.*,core_databaselist.connection_name, \
-                    core_databaselist.computer_room from core_sqlorder \
+                    select o.id,o.work_id,o.text,o.backup,o.date,o.assigned,
+                    o.username,o.real_name,o.basename,core_databaselist.connection_name, \
+                    core_databaselist.computer_room from core_sqlorder as o \
                     INNER JOIN core_databaselist on \
-                    core_sqlorder.bundle_id = core_databaselist.id where core_sqlorder.status = 1 and core_sqlorder.assigned = '%s'\
-                    ORDER BY core_sqlorder.id desc
-                    ''' % username
+                    o.bundle_id = core_databaselist.id where o.status = 1 and o.assigned = '%s'\
+                    ORDER BY o.id desc
+                    ''' % request.user
                 )[start:end]
                 data = util.ser(sql)
                 return Response({'data': data, 'page': pagenumber})
@@ -132,7 +132,8 @@ class order_detail(baseview.BaseView):
 
         try:
             order_id = request.data['id']
-            info = list(set(json.loads(request.data['opid'])))
+            tmp = list(set(json.loads(request.data['opid'])))
+            info = [x for x in tmp if x.find("0_0_") == -1]
         except KeyError as e:
             CUSTOM_ERROR.error(f'{e.__class__.__name__}: {e}')
             return HttpResponse(status=500)
@@ -140,14 +141,14 @@ class order_detail(baseview.BaseView):
             try:
                 sql = []
                 rollback_sql = []
+                dataset = SqlOrder.objects.raw(
+                    "select core_sqlorder.*,core_databaselist.connection_name,\
+                    core_databaselist.computer_room from core_sqlorder INNER JOIN \
+                    core_databaselist on core_sqlorder.bundle_id = core_databaselist.id \
+                    WHERE core_sqlorder.id = %s"
+                    % order_id)
+                data = util.ser(dataset)
                 for i in info:
-                    info = SqlOrder.objects.raw(
-                        "select core_sqlorder.*,core_databaselist.connection_name,\
-                        core_databaselist.computer_room from core_sqlorder INNER JOIN \
-                        core_databaselist on core_sqlorder.bundle_id = core_databaselist.id \
-                        WHERE core_sqlorder.id = %s"
-                        % order_id)
-                    data = util.ser(info)
                     _data = SqlRecord.objects.filter(sequence=i).first()
                     roll = rollback.rollbackSQL(db=_data.backup_dbname, opid=i)
                     link = _data.backup_dbname + '.' + roll['tablename']

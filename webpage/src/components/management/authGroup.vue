@@ -16,7 +16,7 @@
     <Modal v-model="addAuthGroupModal" :width="800">
       <h3 slot="header" style="color:#2D8CF0">权限组设置</h3>
       <Form :model="addAuthGroupForm" :label-width="120" label-position="right">
-        <FormItem label="* 权限组名">
+        <FormItem label="权限组名">
           <Input v-model="addAuthGroupForm.groupname" v-bind:readonly="isReadOnly"></Input>
         </FormItem>
         <template>
@@ -37,7 +37,7 @@
               </div>
               <CheckboxGroup v-model="permission.ddlcon">
                 <Checkbox v-for="i in connectionList.connection" :label="i.connection_name" :key="i.connection_name">
-                  {{i.connection_name}}
+                  <Tag color="purple" :key="i"> {{i.connection_name}}</Tag>
                 </Checkbox>
               </CheckboxGroup>
             </FormItem>
@@ -61,7 +61,7 @@
               </div>
               <CheckboxGroup v-model="permission.dmlcon">
                 <Checkbox v-for="i in connectionList.connection" :label="i.connection_name" :key="i.connection_name">
-                  {{i.connection_name}}
+                  <Tag color="geekblue" :key="i"> {{i.connection_name}}</Tag>
                 </Checkbox>
               </CheckboxGroup>
             </FormItem>
@@ -85,7 +85,7 @@
               </div>
               <CheckboxGroup v-model="permission.querycon">
                 <Checkbox v-for="i in connectionList.connection" :label="i.connection_name" :key="i.connection_name">
-                  {{i.connection_name}}
+                  <Tag color="blue" :key="i"> {{i.connection_name}}</Tag>
                 </Checkbox>
               </CheckboxGroup>
             </FormItem>
@@ -101,44 +101,11 @@
               </Checkbox>
             </div>
             <CheckboxGroup v-model="permission.person">
-              <Checkbox v-for="i in connectionList.person" :label="i.username" :key="i.username">{{i.username}}
+              <Checkbox v-for="i in connectionList.person" :label="i.username" :key="i.username">
+                <Tag color="cyan" :key="i"> {{i.username}}</Tag>
               </Checkbox>
             </CheckboxGroup>
           </FormItem>
-          <hr style="height:1px;border:none;border-top:1px dashed #dddee1;"/>
-          <br>
-          <FormItem label="数据字典权限:">
-            <RadioGroup v-model="permission.dic">
-              <Radio label="1">是</Radio>
-              <Radio label="0">否</Radio>
-            </RadioGroup>
-          </FormItem>
-          <template v-if="permission.dic === '1'">
-            <FormItem label="数据字典修改权限:">
-              <RadioGroup v-model="permission.dicedit">
-                <Radio label="1">是</Radio>
-                <Radio label="0">否</Radio>
-              </RadioGroup>
-            </FormItem>
-            <FormItem label="数据字典导出权限:">
-              <RadioGroup v-model="permission.dicexport">
-                <Radio label="1">是</Radio>
-                <Radio label="0">否</Radio>
-              </RadioGroup>
-            </FormItem>
-            <FormItem label="连接名:">
-              <div style="border-bottom: 1px solid #e9e9e9;padding-bottom:6px;margin-bottom:6px;">
-                <Checkbox
-                  :indeterminate="indeterminate.dic"
-                  :value="checkAll.dic"
-                  @click.prevent.native="ddlCheckAll('diccon', 'dic', 'dic')">全选
-                </Checkbox>
-              </div>
-              <CheckboxGroup v-model="permission.diccon">
-                <Checkbox v-for="i in connectionList.dic" :label="i.Name" :key="i.Name">{{i.Name}}</Checkbox>
-              </CheckboxGroup>
-            </FormItem>
-          </template>
         </template>
         <template>
           <hr style="height:1px;border:none;border-top:1px dashed #dddee1;"/>
@@ -165,13 +132,27 @@
         <Button type="primary" @click="saveAddGroup" v-else>保存</Button>
       </div>
     </Modal>
+
+
+    <Modal v-model="deluserModal" :closable='false' :mask-closable=false :width="500" @on-ok="deleteAuthGroup">
+      <h3 slot="header" style="color:#2D8CF0">删除权限组</h3>
+      <Form :label-width="100" label-position="right">
+        <FormItem label="用户名">
+          <Input v-model="authgroup" readonly="readonly"></Input>
+        </FormItem>
+        <FormItem label="请输入用户名">
+          <Input v-model="confirmgroup" placeholder="请确认用户名"></Input>
+        </FormItem>
+      </Form>
+    </Modal>
+
+
   </div>
 </template>
 
 <script>
   import axios from 'axios'
   import '../../assets/tablesmargintop.css'
-  import util from '../../libs/util'
 
   const structure = {
     ddl: '0',
@@ -180,10 +161,6 @@
     dmlcon: [],
     query: '0',
     querycon: [],
-    dic: '0',
-    diccon: [],
-    dicedit: '0',
-    dicexport: '0',
     user: '0',
     base: '0',
     person: []
@@ -192,6 +169,9 @@
     name: 'auth-group',
     data () {
       return {
+        authgroup: '',
+        confirmgroup: '',
+        deluserModal: false,
         isAdd: true,
         isReadOnly: false,
         pagenumber: 1,
@@ -238,7 +218,7 @@
                   },
                   on: {
                     click: () => {
-                      this.deleteAuthGroup(params.row)
+                      this.deleteAuth(params.row)
                     }
                   }
                 }, '删除')
@@ -251,19 +231,16 @@
           ddl: true,
           dml: true,
           query: true,
-          dic: true,
           person: true
         },
         checkAll: {
           ddl: false,
           dml: false,
           query: false,
-          dic: false,
           person: false
         },
         connectionList: {
           connection: [],
-          dic: [],
           person: []
         },
         addAuthGroupForm: {
@@ -274,62 +251,58 @@
     },
     methods: {
       editAuthGroup (vl) {
-        this.addAuthGroupModal = true
-        this.isAdd = false
-        this.isReadOnly = true
+        [this.isReadOnly, this.addAuthGroupModal, this.isAdd] = [true, true, false]
         this.id = vl.id
         this.addAuthGroupForm.groupname = vl.username
         this.permission = vl.permissions
       },
       createModel () {
-        this.addAuthGroupModal = true
-        this.isReadOnly = false
-        this.isAdd = true
+        [this.addAuthGroupModal, this.isReadOnly, this.isAdd] = [true, false, true]
         this.permission = structure
       },
       createAuthGroup () {
         for (let i of this.data6) {
           if (this.addAuthGroupForm.groupname === i.username) {
-            return util.err_notice('不可创建相同名的权限组！')
+            return this.$config.err_notice(this, '不可创建相同名的权限组！')
           }
         }
-        axios.post(`${util.url}/authgroup/`, {
+        axios.post(`${this.$config.url}/authgroup/`, {
           'groupname': this.addAuthGroupForm.groupname,
           'permission': JSON.stringify(this.permission)
         })
           .then(res => {
-            util.notice(res.data)
+            this.$config.notice(res.data)
             this.$refs.total.currentPage = 1
             this.refreshgroup()
           })
           .catch(error => {
-            util.err_notice(error)
+            this.$config.err_notice(this, error)
           })
         this.addAuthGroupModal = false
       },
       saveAddGroup () {
-        axios.put(`${util.url}/authgroup/update`, {
+        axios.put(`${this.$config.url}/authgroup/update`, {
           'groupname': this.addAuthGroupForm.groupname,
           'permission': JSON.stringify(this.permission)
         })
           .then(res => {
-            util.notice(res.data)
+            this.$config.notice(res.data)
             this.$refs.total.currentPage = 1
             this.refreshgroup()
           })
           .catch(error => {
-            util.err_notice(error)
+            this.$config.err_notice(this, error)
           })
         this.addAuthGroupModal = false
       },
       refreshgroup (vl = 1) {
-        axios.get(`${util.url}/authgroup/all?page=${vl}`)
+        axios.get(`${this.$config.url}/authgroup/all?page=${vl}`)
           .then(res => {
             this.data6 = res.data.data
             this.pagenumber = parseInt(res.data.page)
           })
           .catch(error => {
-            util.ajanxerrorcode(this, error)
+            this.$config.err_notice(this, error)
           })
       },
       splicpage (page) {
@@ -343,9 +316,7 @@
         }
         this.indeterminate[indeterminate] = false
         if (this.checkAll[indeterminate]) {
-          if (ty === 'dic') {
-            this.permission[name] = this.connectionList[ty].map(vl => vl.Name)
-          } else if (ty === 'person') {
+          if (ty === 'person') {
             this.permission[name] = this.connectionList[ty].map(vl => vl.username)
           } else {
             this.permission[name] = this.connectionList[ty].map(vl => vl.connection_name)
@@ -354,24 +325,34 @@
           this.permission[name] = []
         }
       },
-      deleteAuthGroup (vl) {
-        axios.delete(`${util.url}/authgroup/${vl.username}`)
-          .then(res => {
-            util.notice(res.data)
-            this.refreshgroup()
+      deleteAuthGroup () {
+        if (this.authgroup === this.confirmgroup) {
+          axios.delete(`${this.$config.url}/authgroup/${this.confirmgroup}`)
+            .then(res => {
+              this.$config.notice(res.data)
+              this.refreshgroup()
+            })
+            .catch(err => this.$config.err_notice(this, err))
+        } else {
+          this.$Message.error({
+            content: '请填写正确的权限组名称！',
+            duration: 5
           })
-          .catch(err => util.err_notice(err))
+        }
+      },
+      deleteAuth (vl) {
+        this.deluserModal = true
+        this.authgroup = vl.username
       }
     },
     mounted () {
-      axios.put(`${util.url}/workorder/connection`, {'permissions_type': 'user'})
+      axios.put(`${this.$config.url}/workorder/connection`, {'permissions_type': 'user'})
         .then(res => {
           this.connectionList.connection = res.data['connection']
-          this.connectionList.dic = res.data['dic']
           this.connectionList.person = res.data['person']
         })
         .catch(error => {
-          util.err_notice(error)
+          this.$config.err_notice(this, error)
         })
       this.refreshgroup()
     }

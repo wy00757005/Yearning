@@ -65,7 +65,6 @@
           'ddledit': '',
           'dmledit': '',
           'indexedit': '',
-          'view-dml': '',
           'serach-sql': '1',
           'management-user': '',
           'management-database': '',
@@ -99,13 +98,12 @@
       }
     },
     created () {
-      axios.get(`${util.url}/homedata/menu`)
+      axios.get(`${this.$config.url}/homedata/menu`)
         .then(res => {
           let c = JSON.parse(res.data)
           this.filtermenulist.ddledit = c.ddl
           this.filtermenulist.indexedit = c.ddl
           this.filtermenulist.dmledit = c.dml
-          this.filtermenulist['view-dml'] = c.dic
           this.filtermenulist['management-user'] = c.user
           this.filtermenulist['management-database'] = c.base
         })

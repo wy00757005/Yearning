@@ -10,9 +10,29 @@
           <Icon type="md-person"></Icon>
           我的工单
         </p>
+        <Form inline ref="queryForm">
+          <FormItem>
+            <Input placeholder="工单说明" v-model="find.text" @on-keyup.enter="queryData"></Input>
+          </FormItem>
+          <FormItem>
+            <DatePicker format="yyyy-MM-dd HH:mm" type="datetimerange" placeholder="请选择查询的时间范围"
+                        v-model="find.picker" @on-change="find.picker=$event" style="width: 250px"></DatePicker>
+          </FormItem>
+          <FormItem>
+            <Button type="success" @click="queryData">查询</Button>
+            <Button type="primary" @click="queryCancel">重置</Button>
+          </FormItem>
+        </Form>
         <Row>
           <Col span="24">
-            <Table border :columns="columns" :data="table_data" stripe size="small"></Table>
+            <Table border :columns="columnsName" :data="table_data" stripe size="small">
+              <template slot-scope="{ row, index }" slot="action">
+                <div>
+                  <Button type="text" @click="openOrder(row)" size="small">详细信息</Button>
+                  <Button type="text" @click="orderReject(row)" v-if="row.status === 0" size="small">驳回理由</Button>
+                </div>
+              </template>
+            </Table>
           </Col>
         </Row>
         <br>
@@ -24,13 +44,12 @@
 <script>
   //
   import axios from 'axios'
-  import util from '../../libs/util'
 
   export default {
     name: 'put',
     data () {
       return {
-        columns: [
+        columnsName: [
           {
             title: '工单编号:',
             key: 'work_id',
@@ -38,11 +57,17 @@
           },
           {
             title: '工单说明',
-            key: 'text'
+            key: 'text',
+            tooltip: true
           },
           {
             title: '是否备份',
             key: 'backup'
+          },
+          {
+            title: '数据库名:',
+            key: 'basename',
+            sortable: true
           },
           {
             title: '提交时间:',
@@ -50,8 +75,13 @@
             sortable: true
           },
           {
-            title: '提交人',
-            key: 'username',
+            title: '审核/执行人',
+            key: 'assigned',
+            sortable: true
+          },
+          {
+            title: '多级审核执行人',
+            key: 'executor',
             sortable: true
           },
           {
@@ -73,6 +103,9 @@
               } else if (row.status === 4) {
                 color = 'error'
                 text = '执行失败'
+              } else if (row.status === 5) {
+                color = 'primary'
+                text = '待执行'
               } else {
                 color = 'warning'
                 text = '执行中'
@@ -85,126 +118,69 @@
                 }
               }, text)
             },
-            sortable: true,
-            filters: [{
-              label: '已执行',
-              value: 1
-            },
-              {
-                label: '驳回',
-                value: 0
-              },
-              {
-                label: '待审核',
-                value: 2
-              },
-              {
-                label: '执行中',
-                value: 3
-              },
-              {
-                label: '执行失败',
-                value: 4
-              }
-            ],
-            //            filterMultiple: false 禁止多选,
-            filterMethod (value, row) {
-              if (value === 1) {
-                return row.status === 1
-              } else if (value === 2) {
-                return row.status === 2
-              } else if (value === 0) {
-                return row.status === 0
-              } else if (value === 3) {
-                return row.status === 3
-              } else {
-                return row.status === 4
-              }
-            }
+            sortable: true
           },
           {
             title: '操作',
             key: 'action',
             align: 'center',
-            render: (h, params) => {
-              if (params.row.status === 0) {
-                return h('div', [
-                  h('Button', {
-                    props: {
-                      size: 'small',
-                      type: 'text'
-                    },
-                    on: {
-                      click: () => {
-                        this.$router.push({
-                          name: 'orderlist',
-                          query: {
-                            workid: params.row.work_id,
-                            id: params.row.id,
-                            status: params.row.status,
-                            type: params.row.type
-                          }
-                        })
-                      }
-                    }
-                  }, '详细信息'),
-                  h('Button', {
-                    props: {
-                      size: 'small',
-                      type: 'text'
-                    },
-                    on: {
-                      click: () => {
-                        this.$Modal.error({
-                          title: '驳回理由',
-                          content: params.row.rejected
-                        })
-                      }
-                    }
-                  }, '驳回理由')
-                ])
-              } else {
-                return h('div', [
-                  h('Button', {
-                    props: {
-                      size: 'small',
-                      type: 'text'
-                    },
-                    on: {
-                      click: () => {
-                        this.$router.push({
-                          name: 'orderlist',
-                          query: {
-                            workid: params.row.work_id,
-                            id: params.row.id,
-                            status: params.row.status,
-                            type: params.row.type
-                          }
-                        })
-                      }
-                    }
-                  }, '详细信息')
-                ])
-              }
-            }
+            slot: 'action'
           }
         ],
         page_number: 1,
-        computer_room: util.computer_room,
-        table_data: []
+        computer_room: this.$config.computer_room,
+        table_data: [],
+        find: {
+          picker: [],
+          valve: false,
+          text: ''
+        },
+        multi: false
       }
     },
     methods: {
       currentpage (vl = 1) {
-        axios.get(`${util.url}/myorder/?user=${sessionStorage.getItem('user')}&page=${vl}`)
+        axios.get(`${this.$config.url}/myorder/?page=${vl}&query=${JSON.stringify(this.find)}`)
           .then(res => {
+            if (!res.data.multi) {
+              for (let i = 0; i < this.columnsName.length; i++) {
+                if (this.columnsName[i].key === 'executor') {
+                  this.columnsName.splice(i, 1)
+                }
+              }
+            }
             this.table_data = res.data.data
             this.table_data.forEach((item) => { (item.backup === 1) ? item.backup = '是' : item.backup = '否' })
             this.page_number = parseInt(res.data.page)
           })
           .catch(error => {
-            util.err_notice(error)
+            this.$config.err_notice(this, error)
           })
+      },
+      queryData () {
+        this.find.valve = true
+        this.currentpage()
+      },
+      queryCancel () {
+        this.find = this.$config.clearObj(this.find)
+        this.currentpage()
+      },
+      openOrder (row) {
+        this.$router.push({
+          name: 'orderlist',
+          query: {
+            workid: row.work_id,
+            id: row.id,
+            status: row.status,
+            type: row.type
+          }
+        })
+      },
+      orderReject (row) {
+        this.$Modal.error({
+          title: '驳回理由',
+          content: row.rejected
+        })
       }
     },
     mounted () {

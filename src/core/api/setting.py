@@ -2,7 +2,6 @@ import logging
 import json
 from libs import baseview, util
 from rest_framework.response import Response
-from core.task import set_auth_group
 from core.models import globalpermissions, Account
 from django.http import HttpResponse
 
@@ -32,12 +31,9 @@ class setting_view(baseview.SuperUserpermissions):
             if args == '1':  # ldap测试
                 ldap = json.loads(request.data['ldap'])
                 ldap_test = util.test_auth(
-                    username=ldap['user'],
-                    password=ldap['password'],
-                    host=ldap['host'],
-                    type=ldap['type'],
-                    sc=ldap['sc'],
-                    domain=ldap['domain'])
+                    url=ldap['url'],
+                    user=ldap['user'],
+                    password=ldap['password'])
                 if ldap_test:
                     return Response('ldap连接成功!')
                 else:

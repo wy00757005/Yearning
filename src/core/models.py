@@ -38,22 +38,6 @@ class Account(AbstractUser):
     real_name = models.CharField(max_length=100, null=True, default='请添加真实姓名')  # 真实姓名
 
 
-class SqlDictionary(models.Model):
-    '''
-    数据库字典表
-    '''
-    BaseName = models.CharField(max_length=100)  # 库名
-    TableName = models.CharField(max_length=100)  # 表名
-    Field = models.CharField(max_length=100)  # 字段名
-    Type = models.CharField(max_length=100)  # 类型
-    Extra = models.TextField()  # 备注
-    TableComment = models.CharField(max_length=100)  # 表备注
-    Name = models.CharField(max_length=100, null=True)  # 连接名
-
-    def __str__(self):
-        return self.TableName
-
-
 class SqlOrder(models.Model):
     '''
     工单提交表
@@ -68,10 +52,11 @@ class SqlOrder(models.Model):
     basename = models.CharField(max_length=50, blank=True)  # 数据库名
     sql = models.TextField(blank=True)  # sql语句
     text = models.TextField(blank=True)  # 工单备注
-    assigned = models.CharField(max_length=50, blank=True)  # 工单执行人
-    delay = models.IntegerField(null=True, default=0)  # 延迟时间
+    assigned = models.CharField(max_length=50, blank=True)  # 工单审核人
+    delay = models.CharField(max_length=100, null=True, default='None')  # 延迟时间
     rejected = models.TextField(blank=True)  # 驳回说明
     real_name = models.CharField(max_length=100, null=True)  # 姓名
+    executor = models.CharField(max_length=50, null=True)  # 多级审核下的执行人
 
 
 class DatabaseList(models.Model):
@@ -135,6 +120,7 @@ class applygrained(models.Model):
     status = models.IntegerField(blank=True, null=True)  # 工单状态 0 disagree 1 agree 2 indeterminate
     permissions = JSONField()
     auth_group = models.CharField(max_length=50, null=True)
+    real_name = models.CharField(max_length=100, null=True)  # 真实姓名
 
 
 class querypermissions(models.Model):
@@ -154,3 +140,4 @@ class query_order(models.Model):
     export = models.SmallIntegerField(null=True, default=0)
     audit = models.CharField(max_length=100, null=True)
     time = models.CharField(max_length=100, null=True)
+    real_name = models.CharField(max_length=100, null=True)  # 真实姓名

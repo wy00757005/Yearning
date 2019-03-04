@@ -1,6 +1,6 @@
 <style lang="less">
-  @import '../../styles/common.less';
-  @import 'components/table.less';
+  @import "../../styles/common.less";
+  @import "components/table.less";
 </style>
 
 <template>
@@ -14,25 +14,32 @@
           </p>
           <div class="edittable-test-con">
             <div id="showImage" class="margin-bottom-10">
-
               <Form ref="formItem" :model="formItem" :rules="ruleValidate" :label-width="80">
                 <FormItem label="机房:" prop="computer_room">
-                  <Select v-model="formItem.computer_room" @on-change="Connection_Name">
+                  <Select v-model="formItem.computer_room" @on-change="ScreenConnection">
                     <Option v-for="i in datalist.computer_roomlist" :key="i" :value="i">{{i}}</Option>
                   </Select>
                 </FormItem>
 
                 <FormItem label="连接名:" prop="connection_name">
-                  <Select v-model="formItem.connection_name" @on-change="DataBaseName" filterable>
-                    <Option v-for="i in datalist.connection_name_list" :value="i.connection_name"
-                            :key="i.connection_name">{{ i.connection_name }}
+                  <Select v-model="formItem.connection_name" @on-change="DataBaseName">
+                    <Option
+                      v-for="i in datalist.connection_name_list"
+                      :value="i.connection_name"
+                      :key="i.connection_name"
+                    >{{ i.connection_name }}
                     </Option>
                   </Select>
                 </FormItem>
 
                 <FormItem label="库名:" prop="basename">
-                  <Select v-model="formItem.basename" filterable>
-                    <Option v-for="item in datalist.basenamelist" :value="item" :key="item">{{ item }}</Option>
+                  <Select v-model="formItem.basename">
+                    <Option
+                      v-for="item in datalist.basenamelist"
+                      :value="item"
+                      :key="item"
+                    >{{ item }}
+                    </Option>
                   </Select>
                 </FormItem>
 
@@ -46,39 +53,44 @@
                   </Select>
                 </FormItem>
 
-                <FormItem label="是否备份">
+                <FormItem label="是否备份" required>
                   <RadioGroup v-model="formItem.backup">
                     <Radio label="1">是</Radio>
                     <Radio label="0">否</Radio>
                   </RadioGroup>
                 </FormItem>
 
-                <FormItem label="延迟执行">
-                  <InputNumber
-                    v-model="formItem.delay"
-                    :formatter="value => `${value}分钟`"
-                    :parser="value => value.replace('分钟', '')"
-                    :min="0">
-                  </InputNumber>
+                <FormItem label="定时执行">
+                  <DatePicker format="yyyy-MM-dd HH:mm" type="datetime" placeholder="选择时间点" :options="invalidDate"
+                              v-model="formItem.delay" @on-change="formItem.delay=$event" :editable="false"></DatePicker>
                 </FormItem>
-
               </Form>
               <Form :label-width="30">
                 <FormItem>
                   <Button type="info" icon="md-brush" @click.native="beautify()">美化</Button>
-                  <Button type="error" icon="md-trash" @click.native="ClearForm()" style="margin-left: 10%">清除</Button>
+                  <Button
+                    type="error"
+                    icon="md-trash"
+                    @click.native="ClearForm()"
+                    style="margin-left: 10%"
+                  >清除
+                  </Button>
                 </FormItem>
 
                 <FormItem>
-                  <Button type="warning" icon="md-search" @click.native="test_sql()">检测</Button>
-                  <Button type="success" icon="ios-redo" @click.native="SubmitSQL()" style="margin-left: 10%"
-                          :disabled="this.validate_gen">提交
+                  <Button type="warning" icon="md-search" @click.native="test_sql()" :loading="loading">检测</Button>
+                  <Button
+                    type="success"
+                    icon="ios-redo"
+                    @click.native="SubmitSQL()"
+                    style="margin-left: 10%"
+                    :disabled="this.validate_gen"
+                  >提交
                   </Button>
                 </FormItem>
               </Form>
 
-              <Alert style="height: 145px">
-                检测表字段提示信息
+              <Alert style="height: 145px">检测表字段提示信息
                 <template slot="desc">
                   <p>1.错误等级 0正常,1警告,2错误。</p>
                   <p>2.阶段状态 审核成功,Audit completed</p>
@@ -109,7 +121,6 @@
 <script>
   import ICol from '../../../node_modules/iview/src/components/grid/col.vue'
   import axios from 'axios'
-  import util from '../../libs/util'
 
   export default {
     components: {
@@ -119,6 +130,11 @@
     name: 'SQLsyntax',
     data () {
       return {
+        invalidDate: {
+          disabledDate (date) {
+            return date && date.valueOf() < Date.now() - 86400000
+          }
+        },
         validate_gen: true,
         formItem: {
           textarea: '',
@@ -128,7 +144,7 @@
           text: '',
           backup: '0',
           assigned: '',
-          delay: 0
+          delay: null
         },
         columnsName: [
           {
@@ -200,7 +216,8 @@
         },
         id: null,
         assigned: [],
-        wordList: []
+        wordList: [],
+        loading: false
       }
     },
     methods: {
@@ -218,26 +235,19 @@
         require('brace/theme/xcode')
       },
       beautify () {
-        axios.put(`${util.url}/sqlsyntax/beautify`, {
+        axios.put(`${this.$config.url}/sqlsyntax/beautify`, {
           'data': this.formItem.textarea
         })
           .then(res => {
             this.formItem.textarea = res.data
           })
           .catch(error => {
-            util.err_notice(error)
+            this.$config.err_notice(this, error)
           })
       },
-      Connection_Name (val) {
-        this.datalist.connection_name_list = []
-        this.datalist.basenamelist = []
+      ScreenConnection (val) {
         this.formItem.connection_name = ''
         this.formItem.basename = ''
-        if (val) {
-          this.ScreenConnection(val)
-        }
-      },
-      ScreenConnection (val) {
         this.datalist.connection_name_list = this.item.filter(item => {
           if (item.computer_room === val) {
             return item
@@ -251,14 +261,14 @@
               return item
             }
           })
-          axios.put(`${util.url}/workorder/basename`, {
+          axios.put(`${this.$config.url}/workorder/basename`, {
             'id': this.id[0].id
           })
             .then(res => {
               this.datalist.basenamelist = res.data
             })
             .catch(() => {
-              util.err_notice('无法连接数据库!请检查网络')
+              this.$config.err_notice(this, '无法连接数据库!请检查网络')
             })
         }
       },
@@ -276,31 +286,32 @@
         }
         this.$refs['formItem'].validate((valid) => {
           if (valid) {
+            this.loading = true
             if (this.formItem.textarea) {
               let tmp = this.formItem.textarea.replace(/(;|；)$/gi, '').replace(/；/g, ';')
-              axios.put(`${util.url}/sqlsyntax/test`, {
+              axios.put(`${this.$config.url}/sqlsyntax/test`, {
                 'id': this.id[0].id,
                 'base': this.formItem.basename,
                 'sql': tmp
               })
                 .then(res => {
-                  if (res.data.status === 200) {
-                    this.Testresults = res.data.result
-                    let gen = 0
-                    this.Testresults.forEach(vl => {
-                      if (vl.errlevel !== 0) {
-                        gen += 1
-                      }
-                    })
-                    if (gen === 0) {
-                      this.validate_gen = false
-                    } else {
-                      this.validate_gen = true
+                  this.Testresults = res.data.result
+                  let gen = 0
+                  this.Testresults.forEach(vl => {
+                    if (vl.errlevel !== 0) {
+                      gen += 1
                     }
+                  })
+                  if (gen === 0) {
+                    this.validate_gen = false
+                  } else {
+                    this.validate_gen = true
                   }
+                  this.loading = false
                 })
                 .catch(() => {
-                  util.err_notice('无法连接到Inception!')
+                  this.loading = false
+                  this.$config.err_notice(this, '无法连接到Inception!')
                 })
             } else {
               this.$Message.error('请填写sql语句后再测试!')
@@ -313,7 +324,7 @@
           if (valid) {
             if (this.formItem.textarea) {
               this.datalist.sqllist = this.formItem.textarea.replace(/(;|；)$/gi, '').replace(/\s/g, ' ').replace(/；/g, ';').split(';')
-              axios.post(`${util.url}/sqlsyntax/`, {
+              axios.post(`${this.$config.url}/sqlsyntax/`, {
                 'data': JSON.stringify(this.formItem),
                 'sql': JSON.stringify(this.datalist.sqllist),
                 'real_name': sessionStorage.getItem('real_name'),
@@ -325,35 +336,34 @@
                     title: '成功',
                     desc: res.data
                   })
-                  this.ClearForm()
                 })
                 .catch(error => {
-                  util.err_notice(error)
+                  this.$config.err_notice(this, error)
                 })
+              this.validate_gen = true
             } else {
               this.$Message.error('请填写sql语句后再提交!')
             }
-            this.validate_gen = true
           } else {
             this.$Message.error('表单验证失败!')
           }
         })
       },
       ClearForm () {
-        this.formItem.textarea = ''
+        this.$refs['formItem'].resetFields()
       }
     },
     mounted () {
-      axios.put(`${util.url}/workorder/connection`, {'permissions_type': 'dml'})
+      axios.put(`${this.$config.url}/workorder/connection`, {'permissions_type': 'dml'})
         .then(res => {
           this.item = res.data['connection']
           this.assigned = res.data['assigend']
           this.datalist.computer_roomlist = res.data['custom']
         })
         .catch(error => {
-          util.err_notice(error)
+          this.$config.err_notice(this, error)
         })
-      for (let i of util.highlight.split('|')) {
+      for (let i of this.$config.highlight.split('|')) {
         this.wordList.push({'vl': i, 'meta': '关键字'})
       }
     }
