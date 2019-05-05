@@ -79,7 +79,8 @@
               </FormItem>
               <FormItem>
                 <DatePicker format="yyyy-MM-dd HH:mm" type="datetimerange" placeholder="请选择查询的时间范围"
-                            v-model="find.picker" @on-change="find.picker=$event" style="width: 250px"></DatePicker>
+                            v-model="find.picker" @on-change="find.picker=$event" style="width: 250px"
+                            :editable="false"></DatePicker>
               </FormItem>
               <FormItem>
                 <Button type="success" @click="queryData">查询</Button>
@@ -371,7 +372,7 @@
         togoing: null,
         osc: false,
         oscsha1: '',
-        osclist: [],
+        osclist: JSON.parse(localStorage.getItem('osc')),
         percent: 0,
         consuming: '00:00',
         callback_time: null,
@@ -400,8 +401,7 @@
         this.tableData[index].status === 2 ? this.switch_show = true : this.switch_show = false
         axios.get(`${this.$config.url}/getsql?id=${this.formitem.id}&bundle_id=${this.formitem.bundle_id}`)
           .then(res => {
-            let tmpSql = res.data.sql.split(';')
-            for (let i of tmpSql) {
+            for (let i of JSON.parse(res.data.sql)) {
               this.sql.push({'sql': i})
             }
             this.formitem.computer_room = res.data.comRoom
@@ -453,7 +453,6 @@
       },
       testTo () {
         this.loading = true
-        this.osclist = []
         axios.put(`${this.$config.url}/audit_sql`, {
           'type': 'test',
           'base': this.formitem.basename,
@@ -467,9 +466,12 @@
                   return vl
                 }
               })
+              localStorage.setItem('osc', JSON.stringify(this.osclist))
               this.summit = false
               this.loading = false
             } else {
+              this.loading = false
+              this.modal2 = false
               this.$config.err_notice(this, res.data.status)
             }
           })
@@ -582,7 +584,7 @@
         this.refreshData()
       },
       queryCancel () {
-        this.find = this.$config.clearObj(this.find)
+        this.find = this.$config.clearPicker(this.find)
         this.refreshData()
       }
     },

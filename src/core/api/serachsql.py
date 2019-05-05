@@ -4,7 +4,7 @@ import datetime
 import re
 import threading
 import ast
-import simplejson,time
+import simplejson, time
 from django.http import HttpResponse
 from rest_framework.response import Response
 from libs.serializers import Query_review, Query_list
@@ -128,25 +128,27 @@ class search(baseview.BaseView):
                         if critical:
                             as_list = search.sql_as_ex(
                                 sql, custom_com['sensitive_list'])
-                            fe = []
-                            for k, v in data_set['data'][0].items():
-                                if isinstance(v, bytes):
-                                    fe.append(k)
-                            for l in data_set['data']:
-                                if len(fe) != 0:
-                                    for i in fe:
-                                        l[i] = 'blob字段为不可呈现类型'
-                                for s in as_list:
-                                    l[s] = '********'
+                            if data_set['data']:
+                                fe = []
+                                for k, v in data_set['data'][0].items():
+                                    if isinstance(v, bytes):
+                                        fe.append(k)
+                                for l in data_set['data']:  # O(N^n+m)
+                                    if len(fe) != 0:
+                                        for i in fe:
+                                            l[i] = 'blob字段为不可呈现类型'
+                                    for s in as_list:
+                                        l[s] = '********'
                         else:
-                            fe = []
-                            for k, v in data_set['data'][0].items():
-                                if isinstance(v, bytes):
-                                    fe.append(k)
-                            if len(fe) != 0:
-                                for l in data_set['data']:
-                                    for i in fe:
-                                        l[i] = 'blob字段为不可呈现类型'
+                            if data_set['data']:
+                                fe = []
+                                for k, v in data_set['data'][0].items():
+                                    if isinstance(v, bytes):
+                                        fe.append(k)
+                                if len(fe) != 0:
+                                    for l in data_set['data']:   # O(N^n)
+                                        for i in fe:
+                                            l[i] = 'blob字段为不可呈现类型'
 
                         querypermissions.objects.create(
                             work_id=user.work_id,
@@ -220,7 +222,7 @@ class query_worklf(baseview.BaseView):
         start = int(page) * 20 - 20
         end = int(page) * 20
         if qurey['valve']:
-            if len(qurey['picker']) == 0:
+            if qurey['picker'][0] is '':
                 info = query_order.objects.filter(username__contains=qurey['user']).order_by(
                     '-id')[
                        start:end]
@@ -435,7 +437,7 @@ class Query_order(baseview.SuperUserpermissions):
         start = (int(page) - 1) * 20
         end = int(page) * 20
         if qurey['valve']:
-            if len(qurey['picker']) == 0:
+            if qurey['picker'][0] is '':
                 info = query_order.objects.filter(username__contains=qurey['user']).order_by(
                     '-id')[
                        start:end]
