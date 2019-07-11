@@ -3,7 +3,6 @@
 </p>
 
 # Yearning SQL审核平台
-[![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 ![LICENSE](https://img.shields.io/badge/license-AGPL%20-blue.svg)
 ![](https://img.shields.io/badge/build-release-brightgreen.svg)  
 ![](https://img.shields.io/badge/version-v1.4.7-brightgreen.svg)  
@@ -42,13 +41,6 @@
 ## Install 安装及使用日志
 
 [使用及安装文档](http://guide.yearning.io)
-
-## Support 支持Yearning
-
-如果Yearning能够帮助到你，请支持下Yearning吧，让Yearning能够持续改善并更新
-
-![](img/alipay.jpg)
-![](img/wechat.jpg)
   
 ## About 联系方式
    
